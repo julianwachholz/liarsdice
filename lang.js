@@ -18,20 +18,24 @@ exports.en = {
     player_initial: '{nick}: place initial bid',
     player_next:    '{nick}: you may raise the bid or call the bluff',
     player_remind:  'Hey {nick}, it\'s your turn',
+    player_lost:    '{nick} has no more dice and has lost',
+    player_quit:    '{nick} left the game',
 
     command: {
         init:      /^\!start/i,
-        join:      /join/i,
-        bid:       /(\d+) (\d)s?/i,
-        challenge: /(liar|call|bluff)/i,
-        dice_left: /dice left\?/i,
+        join:      /\bjoin\b/i,
+        bid:       /(\d+) (\d+)s?/i,
+        challenge: /\b(liar|call|bluff)\b/i,
+        dice_left: /dice (are )?left/i,
         // spoton:    /(spot on|spoton)/i,
     },
 
-    bid_illegal: 'Bid is illegal. You may bid an increased quantity of any face or the same quantity of a higher face',
-    bid_placed:  '{nick} bids there are {count} {face}s',
-    bid_too_many_dice: '{nick}: there are only {total} dice left..',
+    bid_illegal:        'Bid is illegal. You may bid an increased quantity of any face or the same quantity of a higher face',
+    bid_no_such_face:   '{nick}: there are no {face}s',
+    bid_too_many_dice:  '{nick}: there are only {total} dice left..',
 
+    bid_placed:         '{nick} bids there are {count} {face}s',
+    bid_placed_single:  '{nick} bids there is one {face}',
     e_no_bid: '{nick}: no bid to challenge, place initial bid',
     bid_challenged: '{nick} calls the bluff',
     bid_bluff:  'Bid was a bluff, only {count} {face}s',
@@ -39,7 +43,8 @@ exports.en = {
     bid_valid:  'Bid was true, at least {count} {face}s',
     bid_valid2: '{nick} loses a die for calling a valid bid',
 
+    dice_left: 'dice left in this round: ',
+
     reveal: '{nick} shows {count} {face}s, totalling {total}',
-    lost: '{nick} has no more dice and has lost',
     finish: '{nick} wins the game'
 };

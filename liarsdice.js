@@ -9,7 +9,7 @@ var lang = require('./lang')[require('./config').config.lang],
     STATUS_JOINING = 1,
     STATUS_PLAYING = 2,
 
-    TIMEOUT_JOINING = 30,
+    TIMEOUT_JOINING = 60,
     TIMEOUT_ROUND   = 5,
     TIMEOUT_TURN    = 60,
 
@@ -185,10 +185,21 @@ player_bid = function(nick, count, face) {
         return;
     }
 
+    if (face < FACE_MIN || face > FACE_MAX) {
+        announce(lang.e_no_such_face.format({ nick: nick, face: face }));
+        return;
+    }
+
     if (count > current_bid[0] || count == current_bid[0] && face > current_bid[1]) {
         current_bid = [count, face];
         current_player = current_player + 1 >= players.length ? 0 : current_player + 1;
-        announce(lang.bid_placed.format({ nick: nick_prev(), count: count, face: face }));
+
+        if (count === 1) {
+            announce(lang.bid_placed_single.format({ nick: nick_prev(), face: face }));
+        } else {
+            announce(lang.bid_placed.format({ nick: nick_prev(), count: count, face: face }));
+        }
+
         announce(lang.player_next.format({ nick: nick_current() }));
     } else {
         announce(lang.bid_illegal);
@@ -203,7 +214,12 @@ player_bid = function(nick, count, face) {
 player_challenge = function(nick) {
     var total, dice_left, finish = false;
 
-    if (nick !== nick_current()) {
+    if (status !== STATUS_PLAYING || nick !== nick_current()) {
+        return;
+    }
+
+    if (current_bid[0] === 0) {
+        announce(lang.e_no_bid.format({ nick: nick }));
         return;
     }
 
@@ -247,7 +263,20 @@ player_challenge = function(nick) {
  */
 exports.player_lost = function(nick, forceful) {
     var i;
-    announce(lang.lost.format({ nick: nick }));
+
+    if (status === STATUS_IDLE || !players_dice[nick]) {
+        return;
+    }
+
+    if (status !== STATUS_JOINING) {
+        if (forceful) {
+            announce(lang.player_quit.format({ nick: nick }));
+        } else {
+            announce(lang.player_lost.format({ nick: nick }));
+        }
+    } else {
+        forceful = false;
+    }
 
     for (i = 0; i < players.length; i++) {
         if (players[i] === nick) {
@@ -279,7 +308,7 @@ player_dice_left = function() {
         return;
     }
 
-    str = 'dice left in this round: ';
+    str = lang.dice_left;
 
     for (player in players_dice) {
         if (players_dice.hasOwnProperty(player) && !!players_dice[player].count) {
@@ -338,11 +367,7 @@ exports.player_command = function(nick, command, arguments) {
         break;
 
     case 'challenge':
-        if (current_bid[0] === 0) {
-            announce(lang.e_no_bid.format({ nick: nick }));
-        } else {
-            player_challenge(nick);
-        }
+        player_challenge(nick);
         break;
 
     case 'dice_left':
