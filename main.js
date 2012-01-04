@@ -20,9 +20,7 @@ bot = new irc.Client(config.server, config.nick, {
     userName: config.user || config.nick,
     realName: config.real || config.nick,
 
-    autoConnect: false,
-    debug:       true,
-    showErrors:  false
+    autoConnect: false
 });
 
 game.set_announce(function(str) {
