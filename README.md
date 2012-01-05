@@ -18,13 +18,15 @@ Usage
 
 ### Commands
 
-Several *natural* commands are available to talk with the bot:
+The following commands are available to interact with the bot:
 
  * `!start` will initiate a new game (or join if a new game has already been initiated)
- * `join` adds you to the current game, if it hasn't started yet
- * to make a bid, simply write the count and the face as numbers separated by a space, e.g. `2 4s`
- * to challenge the previous bid, say `call`, `bluff` or simply `liar` (see lang.js for wildcards)
+ * `!join` adds you to the current game, if it hasn't started yet
+ * to make a bid, write `!bid` followed by the count and the face numbers separated by a space, e.g. `!bid 2 4`
+ * to challenge the previous bid, say `!call`, `!bluff` or simply `!liar`
  * say `dice left` to see how many dice are left in the game
+
+These command triggers are configured in lang.js.
 
 ### How to play
 
@@ -42,6 +44,8 @@ which case the bidder wins. Otherwise, the challenger wins.
 
 *The spot on call is not yet implemented.*
 
+[Text from Wikipedia](http://en.wikipedia.org/wiki/Liar's_dice)
+
 Todo
 ----
 
@@ -51,3 +55,8 @@ Todo
    * Vote for variations in join phase
  * Statistics
  * Message throttling
+
+Colophon
+--------
+
+https://github.com/progman/node-sleep

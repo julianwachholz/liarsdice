@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Liar's Dice game implementation for node
  *
@@ -23,26 +21,31 @@ bot = new irc.Client(config.server, config.nick, {
     autoConnect: false
 });
 
+// Set callback functions
 game.set_announce(function(str) {
     bot.say(config.channel, str);
 });
-
 game.set_tell(function(nick, str) {
    bot.notice(nick, str);
 });
 
+// Player has a new nick
 bot.addListener('nick', function(oldnick, newnick) {
     game.player_rename(oldnick, newnick);
 });
 
+// Player quits
 bot.addListener('part' + config.channel, function(nick) {
-    game.player_lost(nick, true);
+    game.player_quit(nick);
 });
-
 bot.addListener('quit', function(nick) {
-    game.player_lost(nick, true);
+    game.player_quit(nick);
+});
+bot.addListener('kick', function(chan, nick) {
+    game.player_quit(nick);
 });
 
+// Main message listener
 bot.addListener('message' + config.channel, function(nick, message) {
     var command, match;
 
@@ -56,4 +59,5 @@ bot.addListener('message' + config.channel, function(nick, message) {
     }
 });
 
+// Connect the bot!
 bot.connect();
