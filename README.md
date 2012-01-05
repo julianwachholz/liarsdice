@@ -7,7 +7,7 @@ Setup
 1. clone this repository
 2. `npm install irc`
 3. modify config.js to your liking
-4. `node main.js`
+4. `./run.sh`
 
 **OR**
 

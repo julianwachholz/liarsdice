@@ -23,7 +23,7 @@ exports.en = {
     player_quit:    '{nick} left the game',
 
     num_none: 'no',
-    num_one: 'one',
+    num_one:  'one',
 
     command: {
         init:      /^\!(start|join)/i,
@@ -55,8 +55,9 @@ exports.en = {
     spoton:        '{nick} declares the bid spot-on',
     spoton_true:   'Bid was spot-on, exactly {count} {face}s.',
     spoton_true2:  'Players were caught by a spot-on bid and lost a die',
+    spoton_true2_single:  '{nick} was caught by a spot-on bid and lost a die',
     spoton_wrong:  'Bid was dead wrong. Actually {count} {face}s.',
-    spoton_wrong2: '{nick} loses a die for being dead wrong',
+    spoton_wrong2: '{nick} lost a die for being dead wrong',
 
     dice_left:   'dice left in this round: ',
     dice_reveal: '{nick} shows {count} {face}s, totalling {total}',
