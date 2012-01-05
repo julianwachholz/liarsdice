@@ -392,7 +392,7 @@ player.quit = function(nick) {
     player.remove(nick);
 
     if (status !== STATUS_JOINING) {
-        // TODO handle quits during round?
+        // TODO: handle quits during round
     }
 };
 
@@ -409,6 +409,26 @@ player.remove = function(nick) {
         }
     }
     delete(players_dice[nick]);
+};
+
+/**
+ * Renames a player
+ *
+ * @param {String} oldnick
+ * @param {String} newnick
+ */
+player.rename = function(oldnick, newnick) {
+    var i, len = players.length;
+
+    for (i = 0; i < len; i++) {
+        if (players[i] === oldnick) {
+            players[i] = newnick;
+            break;
+        }
+    }
+
+    players_dice[newnick] = players_dice[oldnick];
+    delete(players_dice[oldnick]);
 };
 
 /**
@@ -430,26 +450,6 @@ player.dice_left = function() {
     }
 
     announce(str);
-};
-
-/**
- * Renames a player
- *
- * @param {String} oldnick
- * @param {String} newnick
- */
-player.rename = function(oldnick, newnick) {
-    var i, len = players.length;
-
-    for (i = 0; i < len; i++) {
-        if (players[i] === oldnick) {
-            players[i] = newnick;
-            break;
-        }
-    }
-
-    players_dice[newnick] = players_dice[oldnick];
-    delete(players_dice[oldnick]);
 };
 
 /**
