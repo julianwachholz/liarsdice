@@ -24,9 +24,11 @@ var lang = require('./lang')[require('./config').config.lang],
 // Runtime settings
     status = STATUS_IDLE,
 
-    variant_use_aces          = false,
-    variant_allow_spoton      = false,
-    variant_always_allow_call = false,
+    variant = {
+        spoton:      true,
+        aces:        false,
+        always_call: false
+    },
 
     players        = [],
     players_dice   = {},
@@ -191,8 +193,9 @@ reveal_dice = function(face) {
                 subtotal = lang.num_none;
             }
 
+            sleep(1);
             announce(lang.dice_reveal.format({ nick: player, count: subtotal, face: face, total: total }));
-            sleep(2);
+            sleep(1);
         }
     }
 
@@ -293,6 +296,26 @@ player.bid = function(nick, count, face) {
 };
 
 /**
+ * Check if a challenge may be played now
+ *
+ * @param {String} nick
+ *
+ * @returns {Boolean} true if player can challenge at this time
+ */
+player.try_challenge = function(nick) {
+    if (status !== STATUS_PLAYING || nick !== get_nick.current()) {
+        return false;
+    }
+
+    if (current_bid[0] === 0) {
+        announce(lang.e_no_bid.format({ nick: nick }));
+        return false;
+    }
+
+    return true;
+};
+
+/**
  * Challenges the previous bid
  *
  * @param {String} nick
@@ -301,12 +324,7 @@ player.challenge = function(nick) {
     var total, dice_left, finish = false,
         id_loser, tmp;
 
-    if (status !== STATUS_PLAYING || nick !== get_nick.current()) {
-        return;
-    }
-
-    if (current_bid[0] === 0) {
-        announce(lang.e_no_bid.format({ nick: nick }));
+    if (!player.try_challenge(nick)) {
         return;
     }
 
@@ -319,7 +337,7 @@ player.challenge = function(nick) {
 
         tmp = 'bid_bluff';
         if (total === 0) {
-            tmp += '_single';
+            tmp += '_none';
         }
 
         announce(
@@ -327,7 +345,6 @@ player.challenge = function(nick) {
             ' ' +
             lang.bid_bluff2.format({ nick: get_nick.prev() })
         );
-
     } else {
         id_loser = 'current';
         tmp = current_bid[0];
@@ -349,6 +366,57 @@ player.challenge = function(nick) {
     }
 
     total_dice -= 1;
+
+    if (!finish) {
+        setTimeout(round_start, TIMEOUT_ROUND * 1000)
+    }
+};
+
+/**
+ * Player says the last bid is exactly correct
+ *
+ * @param {String} nick
+ */
+player.spoton = function(nick) {
+    var total, player_nick, dice_left, finish = false;
+
+    if (!player.try_challenge(nick)) {
+        return;
+    }
+
+    if (!variant.spoton) {
+        return;
+    }
+
+    announce(lang.spoton.format({ nick: nick }));
+    total = reveal_dice(current_bid[1]);
+
+    if (total === current_bid[0]) {
+        announce(
+            lang.spoton_true.format({ count: total, face: current_bid[1] }) +
+            ' ' + lang.spoton_true2
+        );
+
+        for (player_nick in players_dice) {
+            if (player_nick !== nick && players_dice.hasOwnProperty(player_nick)) {
+                dice_left = --players_dice[player_nick].count;
+                if (dice_left === 0) {
+                    finish = player.lost(player_nick);
+                }
+            }
+        }
+    } else {
+        announce(
+            lang.spoton_wrong.format({ count: total, face: current_bid[1] }) +
+            ' ' +
+            lang.spoton_wrong2.format({ nick: nick })
+        );
+
+        dice_left = --players_dice[nick].count;
+        if (dice_left === 0) {
+            finish = player.lost(nick);
+        }
+    }
 
     if (!finish) {
         setTimeout(round_start, TIMEOUT_ROUND * 1000)
@@ -482,6 +550,10 @@ player.__command = function(nick, command, arguments) {
 
     case 'challenge':
         player.challenge(nick);
+        break;
+
+    case 'spoton':
+        player.spoton(nick);
         break;
 
     case 'dice_left':

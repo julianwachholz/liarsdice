@@ -30,7 +30,7 @@ exports.en = {
         quit:      /^\!(quit|forfeit|giveup)/,
         bid:       /^\!bid (\d+) (\d+)s?/i,
         challenge: /^\!(liar|call|bluff)\b/i,
-        // spoton:    /^\!spot ?on/i,
+        spoton:    /^\!spot( |-)?on/i,
 
         // info commands
         dice_left: /dice (are )?left\?/i,
@@ -46,14 +46,17 @@ exports.en = {
     bid_placed_single:    '{nick} bids there is one {face}',
 
     bid_challenged:   '{nick} calls the bluff',
-
     bid_bluff:        'Bid was a bluff, only {count} {face}s.',
-    bid_bluff_single: 'Bid was a bluff, actually no {face}s',
-    bid_bluff2:       '{nick} loses a die for bluffing',
-
+    bid_bluff_none:   'Bid was a bluff, actually no {face}s',
+    bid_bluff2:       '{nick} lost a die for bluffing',
     bid_valid:        'Bid was true, at least {count} {face}s.',
-    bid_valid2:       '{nick} loses a die for calling a valid bid',
+    bid_valid2:       '{nick} lost a die for calling a valid bid',
 
+    spoton:        '{nick} declares the bid spot-on',
+    spoton_true:   'Bid was spot-on, exactly {count} {face}s.',
+    spoton_true2:  'Players were caught by a spot-on bid and lost a die',
+    spoton_wrong:  'Bid was dead wrong. Actually {count} {face}s.',
+    spoton_wrong2: '{nick} loses a die for being dead wrong',
 
     dice_left:   'dice left in this round: ',
     dice_reveal: '{nick} shows {count} {face}s, totalling {total}',

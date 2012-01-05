@@ -42,7 +42,7 @@ If the current player thinks the previous player's bid is wrong, he challenges i
 whether the bid was valid. If the number of the relevant face revealed is at least as high as the bid, then the bid is valid, in
 which case the bidder wins. Otherwise, the challenger wins.
 
-*The spot on call is not yet implemented.*
+*TODO* Describe Spot-On calls.
 
 [Text from Wikipedia](http://en.wikipedia.org/wiki/Liar's_dice)
 
@@ -50,10 +50,10 @@ Todo
 ----
 
  * Implement game variations
-   * Spot On
    * 1 as aces
    * Vote for variations in join phase
- * Statistics
+ * Statistics (everyone loves stats!)
+ * Quick start when all players in a channel joined
  * Message throttling
 
 Colophon
