@@ -24,7 +24,8 @@ The following commands are available to interact with the bot:
  * `!join` adds you to the current game, if it hasn't started yet
  * to make a bid, write `!bid` followed by the count and the face numbers separated by a space, e.g. `!bid 2 4`
  * to challenge the previous bid, say `!call`, `!bluff` or simply `!liar`
- * say `dice left` to see how many dice are left in the game
+ * if you think the previous bid is exactly try, you can declare the bid "Spot On" by saying `!spoton`
+ * say `dice left?` to see how many dice are left in the game
 
 These command triggers are configured in lang.js.
 
@@ -42,7 +43,11 @@ If the current player thinks the previous player's bid is wrong, he challenges i
 whether the bid was valid. If the number of the relevant face revealed is at least as high as the bid, then the bid is valid, in
 which case the bidder wins. Otherwise, the challenger wins.
 
-*TODO* Describe Spot-On calls.
+Instead of raising or challenging, the player can bet that the current bid is exactly correct (called "Spot On"). Such a call,
+like "Liar", ends the round. If the number is higher or lower, the player loses to the previous bidder (i.e. lose a die),
+however if they are correct, they win. This allows a player who believes the previous bidder has made the best correct bid to
+attempt to "steal" the win. "Spot-on" calls have a far higher probability of being wrong, and so the reward for a correct "Spot-
+on" call is generally higher; in this version all other player lose a die.
 
 [Text from Wikipedia](http://en.wikipedia.org/wiki/Liar's_dice)
 
@@ -59,4 +64,4 @@ Todo
 Colophon
 --------
 
-https://github.com/progman/node-sleep
+[Node.js sleep() module by progman](https://github.com/progman/node-sleep)
