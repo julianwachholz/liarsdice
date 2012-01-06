@@ -128,16 +128,17 @@ game_start = function(nick) {
             status = STATUS_IDLE;
         } else {
             status = STATUS_PLAYING;
-            round_start();
+            round_start(0); // first one to join - first one to bid
         }
     }
 };
 
 /**
  * Every player shakes their cup and throws their dice
- * Round begins
+ *
+ * @param {Number} player_id Initial bid goes to this guy
  */
-round_start = function() {
+round_start = function(player_id) {
     var nick, dice_count, faces, i;
 
     total_dice = 0;
@@ -164,8 +165,7 @@ round_start = function() {
     announce(lang.game_round_start);
     current_bid = [0,0];
 
-    initial_bidder = initial_bidder + 1 >= players.length ? 0 : initial_bidder + 1;
-    current_player = initial_bidder;
+    current_player = initial_bidder = !!players[player_id] ? player_id : get_id.next();
 
     announce(lang.player_initial.format({ nick: get_nick.current() }));
 };
@@ -213,6 +213,7 @@ game_ended = function() {
         status = STATUS_IDLE;
         return true;
     }
+    return false;
 };
 
 // player functions
@@ -368,7 +369,9 @@ player.challenge = function(nick) {
     total_dice -= 1;
 
     if (!finish) {
-        setTimeout(round_start, TIMEOUT_ROUND * 1000)
+        setTimeout(function() {
+            round_start(get_id[id_loser]());
+        }, TIMEOUT_ROUND * 1000);
     }
 };
 
@@ -378,7 +381,7 @@ player.challenge = function(nick) {
  * @param {String} nick
  */
 player.spoton = function(nick) {
-    var total, player_nick, dice_left, finish = false;
+    var total, player_nick, dice_left, id_loser, finish = false;
 
     if (!player.try_challenge(nick)) {
         return;
@@ -406,6 +409,8 @@ player.spoton = function(nick) {
                 }
             }
         }
+
+        id_loser = 'next';
     } else {
         announce(
             lang.spoton_wrong.format({ count: total, face: current_bid[1] }) +
@@ -417,10 +422,14 @@ player.spoton = function(nick) {
         if (dice_left === 0) {
             finish = player.lost(nick);
         }
+
+        id_loser = 'current';
     }
 
     if (!finish) {
-        setTimeout(round_start, TIMEOUT_ROUND * 1000)
+        setTimeout(function() {
+            round_start(get_id[id_loser]());
+        }, TIMEOUT_ROUND * 1000);
     }
 };
 
@@ -453,6 +462,7 @@ player.lost = function(nick) {
  * @param {String} nick
  */
 player.quit = function(nick) {
+    var current_nick = get_nick.current();
     if (status === STATUS_IDLE || !players_dice[nick]) {
         return;
     }
@@ -460,8 +470,11 @@ player.quit = function(nick) {
     announce(lang.player_quit.format({ nick: nick }));
     player.remove(nick);
 
-    if (status !== STATUS_JOINING) {
-        // TODO: handle quits during round
+    if (status !== STATUS_JOINING && nick == current_nick) {
+        if (!game_ended()) {
+            current_player = get_id.next();
+            announce(lang.player_next.format({ nick: get_nick.current() }));
+        }
     }
 };
 
