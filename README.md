@@ -54,12 +54,12 @@ on" call is generally higher; in this version all other player lose a die.
 Todo
 ----
 
+ * Quick start when all players in a channel joined
+ * Statistics (everyone loves stats!)
+ * Message throttling
  * Implement game variations
    * 1 as aces
    * Vote for variations in join phase
- * Statistics (everyone loves stats!)
- * Quick start when all players in a channel joined
- * Message throttling
 
 Colophon
 --------
