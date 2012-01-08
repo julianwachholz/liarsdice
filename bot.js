@@ -1,14 +1,11 @@
-/**
- * Liar's Dice game implementation for node
- *
- * @author jwa
- * @version 2012-01-03
+/*
+ * Bot.js loads the game module and starts the IRC bot
  */
 
-var config = require('./config').config,
+var irc    = require('irc'),
+    config = require('./config'),
     lang   = require('./lang')[config.lang],
     game   = require('./liarsdice'),
-    irc    = require('irc'),
     bot;
 
 // Initializes the bot
@@ -25,6 +22,7 @@ bot = new irc.Client(config.server, config.nick, {
 game.set_announce(function(str) {
     bot.say(config.channel, str);
 });
+
 game.set_tell(function(nick, str) {
    bot.notice(nick, str);
 });
@@ -38,16 +36,30 @@ bot.addListener('nick', function(oldnick, newnick) {
 bot.addListener('part' + config.channel, function(nick) {
     game.player_quit(nick);
 });
+
 bot.addListener('quit', function(nick) {
     game.player_quit(nick);
 });
+
 bot.addListener('kick', function(chan, nick) {
-    game.player_quit(nick);
+    if (chan === config.channel) {
+        game.player_quit(nick);
+    }
+});
+
+// Identify with NickServ
+bot.addListener('notice', function(nick, to, text) {
+    if (nick === 'NickServ' && text.match(/^This nickname is registered\./)) {
+        bot.say('NickServ', 'IDENTIFY ' + require('./password').password);
+    }
 });
 
 // Main message listener
 bot.addListener('message' + config.channel, function(nick, message) {
     var command, match;
+
+    // log activity
+    game.activity();
 
     for (command in lang.command) {
         if (lang.command.hasOwnProperty(command)) {
