@@ -55,7 +55,9 @@ Todo
 ----
 
  * Quick start when all players in a channel joined
+ * Round timeouts and dropping idle players from the game
  * Statistics (everyone loves stats!)
+ * Message variants (less boring :P)
  * Message throttling
  * Implement game variations
    * 1 as aces
