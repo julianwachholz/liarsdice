@@ -33,7 +33,7 @@ exports.en = {
         spoton:    /^\!spot( |-)?on/i,
 
         // info commands
-        dice_left: /dice (are )?left\?/i,
+        dice_left: /(^\!dice(left)?|dice (are )?left\??)/i,
     },
 
     e_bid_illegal:        'Bid is illegal. You may bid an increased quantity of any face or the same quantity of a higher face',
@@ -47,7 +47,7 @@ exports.en = {
 
     bid_challenged:   '{nick} calls the bluff',
     bid_bluff:        'Bid was a bluff, only {count} {face}s.',
-    bid_bluff_none:   'Bid was a bluff, actually no {face}s',
+    bid_bluff_none:   'Bid was a bluff, actually no {face}s.',
     bid_bluff2:       '{nick} lost a die for bluffing',
     bid_valid:        'Bid was true, at least {count} {face}s.',
     bid_valid2:       '{nick} lost a die for calling a valid bid',
