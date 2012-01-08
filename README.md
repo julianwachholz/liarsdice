@@ -7,6 +7,7 @@ Setup
 1. clone this repository
 2. `npm install irc`
 3. modify config.js to your liking
+   - for NickServ authentication, add it to `password.json.example` and rename the file to `password.json`.
 4. `./run.sh`
 
 **OR**
@@ -25,7 +26,7 @@ The following commands are available to interact with the bot:
  * to make a bid, write `!bid` followed by the count and the face numbers separated by a space, e.g. `!bid 2 4`
  * to challenge the previous bid, say `!call`, `!bluff` or simply `!liar`
  * if you think the previous bid is exactly try, you can declare the bid "Spot On" by saying `!spoton`
- * say `dice left?` to see how many dice are left in the game
+ * say `!dice` to see how many dice are left in the game
 
 These command triggers are configured in lang.js.
 
@@ -54,13 +55,13 @@ on" call is generally higher; in this version all other player lose a die.
 Todo
 ----
 
- * Quick start when all players in a channel joined
- * Round timeouts and dropping idle players from the game
  * Statistics (everyone loves stats!)
- * Message variants (less boring :P)
- * Message throttling
- * Implement game variations
-   * 1 as aces
+ * Message throttling (don't spit out `!dice` reply for every request, just in case)
+ * Implement game variations (see [Wikipedia](http://en.wikipedia.org/wiki/Liar's_dice#Variants))
+   * Allow `!pass`ing a bid
+   * 1 (or other face) as aces
+   * Loser of a challenge gives one die to the winner of that challenge
+   * Always allow challenging (not only the current player)
    * Vote for variations in join phase
 
 Colophon
