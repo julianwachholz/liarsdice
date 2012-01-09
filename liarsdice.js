@@ -2,7 +2,7 @@
  * The main game
  */
 
-var lang = require('./lang')[require('./config').config.lang],
+var lang = require('./lang')[require('./config').lang],
     sleep = require('node-sleep').sleep,
 
 // Constants
@@ -12,7 +12,9 @@ var lang = require('./lang')[require('./config').config.lang],
 
     TIMEOUT_JOINING = 60,
     TIMEOUT_ROUND   = 10,
-    TIMEOUT_TURN    = 60,
+    TIMEOUT_REMIND  = 120,
+    TIMEOUT_TURN    = 3,    // minutes
+    TIMEOUT_GAME    = 10,   // minutes
 
     MIN_PLAYERS  = 2,
     MAX_PLAYERS  = 5,
@@ -38,6 +40,8 @@ var lang = require('./lang')[require('./config').config.lang],
 
     current_bid    = [0,0],
 
+    // Timeouts & reminders
+    timer,
 
 // Functions to talk with players
     announce,
@@ -50,26 +54,8 @@ var lang = require('./lang')[require('./config').config.lang],
     round_start,
 
     get_nick, // get nicks
-    get_id, // get player IDs
-    player; // player functions
-
-
-/**
- * Formats a string
- *
- * @param {Object} variables
- */
-String.prototype.format = function(variables) {
-    var str = this, key, r;
-    for (key in variables) {
-        if (variables.hasOwnProperty(key)) {
-            r = new RegExp('{' + key + '}', 'g');
-            str = str.replace(r, variables[key]);
-        }
-    }
-
-    return str;
-};
+    get_id,   // get player IDs
+    player;   // player functions
 
 announce = function(str) {};
 exports.set_announce = function(fn) { announce = fn; };
@@ -121,10 +107,10 @@ game_start = function(nick) {
         initial_bidder = -1;
 
         announce(lang.game_init_timeout.format({ nick: nick, seconds: TIMEOUT_JOINING }));
-        setTimeout(game_start, TIMEOUT_JOINING * 1000);
+        timer.start();
     } else {
         if (players.length < MIN_PLAYERS) {
-            announce(lang.e_too_few_players);
+            announce(lang.e_too_few_players.format());
             status = STATUS_IDLE;
         } else {
             status = STATUS_PLAYING;
@@ -162,12 +148,13 @@ round_start = function(player_id) {
         }
     }
 
-    announce(lang.game_round_start);
+    announce(lang.game_round_start.format());
     current_bid = [0,0];
 
     current_player = initial_bidder = !!players[player_id] ? player_id : get_id.next();
 
     announce(lang.player_initial.format({ nick: get_nick.current() }));
+    timer.remind(get_nick.current());
 };
 
 /**
@@ -191,10 +178,17 @@ reveal_dice = function(face) {
 
             if (subtotal === 0) {
                 subtotal = lang.num_none;
+            } else if (subtotal === 1) {
+                subtotal = lang.num_one;
             }
 
             sleep(1);
-            announce(lang.dice_reveal.format({ nick: player, count: subtotal, face: face, total: total }));
+            announce(lang.dice_reveal.format({
+                nick: player,
+                count: subtotal,
+                face: face + (subtotal !== lang.num_one ? lang.face_mult : ''),
+                total: total
+            }));
             sleep(1);
         }
     }
@@ -216,7 +210,90 @@ game_ended = function() {
     return false;
 };
 
-// player functions
+// Timeout & reminder functions
+timer = {
+    timer_remind: null,
+    timer_turn:   null,
+    timer_game:   null,
+    throttle: {},
+
+    /**
+     * Reminds player of game starting in 10s
+     */
+    start: function() {
+        setTimeout(game_start, TIMEOUT_JOINING * 1000);
+        setTimeout(function() {
+            if (players.length >= MIN_PLAYERS) {
+                announce(lang.timeout_start.format({ players: players.join(', ') }));
+            }
+        }, (TIMEOUT_JOINING - 10) * 1000);
+    },
+
+    /**
+     * Reminds a player of his turn
+     *
+     * @param  {String|Boolean} nick Supply false just to clear the timers and not start a new one
+     */
+    remind: function(nick) {
+        clearTimeout(this.timer_remind);
+        clearTimeout(this.timer_turn);
+
+        if (nick !== false) {
+            this.timer_remind = setTimeout(function() {
+                if (status !== STATUS_PLAYING) { return; }
+                announce(lang.timeout_round.format({ nick: nick }));
+                timer.turn(nick);
+            }, TIMEOUT_REMIND * 1000);
+        }
+    },
+
+    /**
+     * Kicks a player after some time of inactivity
+     * @private
+     *
+     * @param  {String} nick
+     */
+    turn: function(nick) {
+        clearTimeout(this.timer_turn);
+        this.timer_turn = setTimeout(function() {
+            if (status !== STATUS_PLAYING) { return; }
+            announce(lang.timeout_player.format({ nick: nick, minutes: TIMEOUT_TURN }));
+            player.quit(nick, true);
+        }, TIMEOUT_TURN * 60 * 1000);
+    },
+
+    /**
+     * Ends the game after long time of inactivity
+     */
+    game: function() {
+        clearTimeout(this.timer_game);
+        this.timer_game = setTimeout(function() {
+            if (status !== STATUS_PLAYING) { return; }
+            announce(lang.timeout_game.format({ minutes: TIMEOUT_GAME }));
+            status = STATUS_IDLE;
+        }, TIMEOUT_TURN * 60 * 1000);
+    },
+
+    /**
+     * Set a throttle limit for a given command identifier
+     *
+     * @param {String} name
+     * @param {Number} timeout Seconds to throttle
+     * @return {Boolean} false if throttled
+     */
+    throttle: function(name, timeout) {
+        var throttle = this.throttle[name];
+        this.throttle[name] = new Date();
+
+        if (!throttle) {
+            return true;
+        }
+
+        return (this.throttle[name].getTime() - throttle.getTime()) / 1000 > timeout;
+    }
+};
+
+// Player functions
 player = {};
 
 /**
@@ -289,10 +366,10 @@ player.bid = function(nick, count, face) {
             announce(lang.bid_placed.format({ nick: get_nick.prev(), count: count, face: face }));
         }
 
-        sleep(1);
         announce(lang.player_next.format({ nick: get_nick.current() }));
+        timer.remind(get_nick.current());
     } else {
-        announce(lang.e_bid_illegal);
+        announce(lang.e_bid_illegal.format({ nick: get_nick.current() }));
     }
 };
 
@@ -313,6 +390,7 @@ player.try_challenge = function(nick) {
         return false;
     }
 
+    timer.remind(false);
     return true;
 };
 
@@ -329,7 +407,7 @@ player.challenge = function(nick) {
         return;
     }
 
-    announce(lang.bid_challenged.format({ nick: nick }));
+    announce(lang.bid_challenged.format({ nick: nick, bidder: get_nick.prev() }));
 
     total = reveal_dice(current_bid[1]);
 
@@ -339,11 +417,12 @@ player.challenge = function(nick) {
         tmp = 'bid_bluff';
         if (total === 0) {
             tmp += '_none';
+        } else if (total === 1) {
+            total = lang.num_one;
         }
 
         announce(
-            lang[tmp].format({ count: total, face: current_bid[1] }) +
-            ' ' +
+            lang[tmp].format({ count: total, face: current_bid[1] + (total !== lang.num_one ? lang.face_mult : '') }) + ' ' +
             lang.bid_bluff2.format({ nick: get_nick.prev() })
         );
     } else {
@@ -355,8 +434,7 @@ player.challenge = function(nick) {
         }
 
         announce(
-            lang.bid_valid.format({ count: tmp, face: current_bid[1] }) +
-            ' ' +
+            lang.bid_valid.format({ count: tmp, face: current_bid[1] + (tmp !== lang.num_one ? lang.face_mult : '') }) + ' ' +
             lang.bid_valid2.format({ nick: get_nick.current() })
         );
     }
@@ -395,9 +473,12 @@ player.spoton = function(nick) {
     total = reveal_dice(current_bid[1]);
 
     if (total === current_bid[0]) {
+        if (total === 1) {
+            total = lang.num_one;
+        }
+
         announce(
-            lang.spoton_true.format({ count: total, face: current_bid[1] }) +
-            ' ' +
+            lang.spoton_true.format({ count: total, face: current_bid[1] + (total !== lang.num_one ? lang.face_mult : '') }) + ' ' +
             (players.length === 2 ? lang.spoton_true2_single.format({ nick: get_nick.next() }) : lang.spoton_true2)
         );
 
@@ -406,15 +487,21 @@ player.spoton = function(nick) {
                 dice_left = --players_dice[player_nick].count;
                 if (dice_left === 0) {
                     finish = player.lost(player_nick);
+                    sleep(1);
                 }
             }
         }
 
         id_loser = 'next';
     } else {
+        if (total === 0) {
+            total = lang.num_none;
+        } else if (total === 1) {
+            total = lang.num_one;
+        }
+
         announce(
-            lang.spoton_wrong.format({ count: total, face: current_bid[1] }) +
-            ' ' +
+            lang.spoton_wrong.format({ count: total, face: current_bid[1] + (total !== lang.num_one ? lang.face_mult : '') }) + ' ' +
             lang.spoton_wrong2.format({ nick: nick })
         );
 
@@ -460,14 +547,17 @@ player.lost = function(nick) {
  * and initiates a new round
  *
  * @param {String} nick
+ * @param {Boolean} silent
  */
-player.quit = function(nick) {
+player.quit = function(nick, silent) {
     var current_nick = get_nick.current();
     if (status === STATUS_IDLE || !players_dice[nick]) {
         return;
     }
 
-    announce(lang.player_quit.format({ nick: nick }));
+    if (silent !== true) {
+        announce(lang.player_quit.format({ nick: nick }));
+    }
     player.remove(nick);
 
     if (status !== STATUS_JOINING && nick == current_nick) {
@@ -523,7 +613,11 @@ player.dice_left = function() {
         return;
     }
 
-    str = lang.dice_left;
+    if (!timer.throttle('dice_left', 10)) {
+        return;
+    }
+
+    str = lang.dice_left.format();
 
     for (player in players_dice) {
         if (players_dice.hasOwnProperty(player) && !!players_dice[player].count) {
@@ -583,6 +677,7 @@ player.__command = function(nick, command, arguments) {
 
 
 // exports
+exports.player_command = player.__command;
 exports.player_rename = player.rename;
 exports.player_quit = player.quit;
-exports.player_command = player.__command;
+exports.activity = timer.game;

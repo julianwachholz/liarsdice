@@ -56,7 +56,6 @@ Todo
 ----
 
  * Statistics (everyone loves stats!)
- * Message throttling (don't spit out `!dice` reply for every request, just in case)
  * Implement game variations (see [Wikipedia](http://en.wikipedia.org/wiki/Liar's_dice#Variants))
    * Allow `!pass`ing a bid
    * 1 (or other face) as aces
