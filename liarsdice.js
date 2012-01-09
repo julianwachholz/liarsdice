@@ -14,7 +14,7 @@ var lang = require('./lang')[require('./config').lang],
     TIMEOUT_ROUND   = 10,
     TIMEOUT_REMIND  = 120,
     TIMEOUT_TURN    = 3,    // minutes
-    TIMEOUT_GAME    = 10,   // minutes
+    TIMEOUT_GAME    = 11,   // minutes
 
     MIN_PLAYERS  = 2,
     MAX_PLAYERS  = 5,
@@ -271,7 +271,7 @@ timer = {
             if (status !== STATUS_PLAYING) { return; }
             announce(lang.timeout_game.format({ minutes: TIMEOUT_GAME }));
             status = STATUS_IDLE;
-        }, TIMEOUT_TURN * 60 * 1000);
+        }, TIMEOUT_GAME * 60 * 1000);
     },
 
     /**
