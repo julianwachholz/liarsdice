@@ -42,12 +42,14 @@ exports.en = {
 
     command: {
         init:      /^\!(start|join)/i,
+        ping:      /^\!ping/i, // @TODO ping command
         quit:      /^\!(quit|forfeit|giveup)/i,
 
         bid:       /^\!bid (\d+) (\d+)s?/i,
         challenge: /^\!(liar|call|bluff)\b/i,
         spoton:    /^\!spot( |-)?on/i,
 
+        kick:      /^\!kick (\S+)/i, // @TODO kick command
         dice_left: /(^\!dice(left)?|dice (are )?left\??)/i,
     },
 

@@ -56,6 +56,9 @@ Todo
 ----
 
  * Statistics (everyone loves stats!)
+ * Utility commands
+   * `!ping` users in channel during join phase
+   * `!kick` idle players in a game of three or more
  * Implement game variations (see [Wikipedia](http://en.wikipedia.org/wiki/Liar's_dice#Variants))
    * Allow `!pass`ing a bid
    * 1 (or other face) as aces
