@@ -479,7 +479,7 @@ player.spoton = function(nick) {
 
         announce(
             lang.spoton_true.format({ count: total, face: current_bid[1] + (total !== lang.num_one ? lang.face_mult : '') }) + ' ' +
-            (players.length === 2 ? lang.spoton_true2_single.format({ nick: get_nick.next() }) : lang.spoton_true2)
+            (players.length === 2 ? lang.spoton_true2_single.format({ nick: get_nick.next() }) : lang.spoton_true2.format())
         );
 
         for (player_nick in players_dice) {
