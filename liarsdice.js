@@ -565,7 +565,11 @@ player.quit = function(nick, silent) {
     if (status !== STATUS_JOINING && nick == current_nick) {
         if (!game_ended()) {
             current_player = get_id.next();
-            announce(lang.player_next.format({ nick: get_nick.current() }));
+            if (current_bid[0] === 0) {
+                announce(lang.player_initial.format({ nick: get_nick.current() }));
+            } else {
+                announce(lang.player_next.format({ nick: get_nick.current() }));
+            }
         }
     }
 };
