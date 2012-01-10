@@ -7,8 +7,8 @@ Setup
 1. clone this repository
 2. `npm install irc`
 3. modify config.js to your liking
-   - for NickServ authentication, add it to `password.json.example` and rename the file to `password.json`.
-4. `./run.sh`
+   - for NickServ authentication, rename `password.json.example` to `password.json` and add your password.
+4. `node bot.js`
 
 **OR**
 
@@ -65,8 +65,3 @@ Todo
    * Loser of a challenge gives one die to the winner of that challenge
    * Always allow challenging (not only the current player)
    * Vote for variations in join phase
-
-Colophon
---------
-
-[Node.js sleep() module by progman](https://github.com/progman/node-sleep)

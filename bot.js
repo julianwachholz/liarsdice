@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 /*
  * Bot.js loads the game module and starts the IRC bot
  */

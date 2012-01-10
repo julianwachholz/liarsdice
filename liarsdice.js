@@ -3,7 +3,6 @@
  */
 
 var lang = require('./lang')[require('./config').lang],
-    sleep = require('node-sleep').sleep,
 
 // Constants
     STATUS_IDLE    = 0,
@@ -161,10 +160,10 @@ round_start = function(player_id) {
  * Reveals all dice and counts the total number of face and returns it
  *
  * @param {Number} face
- * @returns {Number}
+ * @param {Function} fn Callback that accepts the total of face showing dice
  */
-reveal_dice = function(face) {
-    var total = 0, subtotal, i, player;
+reveal_dice = function(face, fn) {
+    var total = 0, subtotal, i, player, iteration = 1;
 
     for (player in players_dice) {
         if (players_dice.hasOwnProperty(player)) {
@@ -182,18 +181,22 @@ reveal_dice = function(face) {
                 subtotal = lang.num_one;
             }
 
-            sleep(1);
-            announce(lang.dice_reveal.format({
-                nick: player,
-                count: subtotal,
-                face: face + (subtotal !== lang.num_one ? lang.face_mult : ''),
-                total: total
-            }));
-            sleep(1);
+            setTimeout(function(player, subtotal, face, total) {
+                return function() {
+                    announce(lang.dice_reveal.format({
+                        nick: player,
+                        count: subtotal,
+                        face: face + (subtotal !== lang.num_one ? lang.face_mult : ''),
+                        total: total
+                    }));
+                }
+            }(player, subtotal, face, total), 1000 * iteration++);
         }
     }
 
-    return total;
+    setTimeout(function() {
+        fn(total);
+    }, 1000 * iteration);
 };
 
 /**
@@ -400,7 +403,7 @@ player.try_challenge = function(nick) {
  * @param {String} nick
  */
 player.challenge = function(nick) {
-    var total, dice_left, finish = false,
+    var dice_left, finish = false,
         id_loser, tmp;
 
     if (!player.try_challenge(nick)) {
@@ -409,48 +412,48 @@ player.challenge = function(nick) {
 
     announce(lang.bid_challenged.format({ nick: nick, bidder: get_nick.prev() }));
 
-    total = reveal_dice(current_bid[1]);
+    reveal_dice(current_bid[1], function(total) {
+        if (total < current_bid[0]) {
+            id_loser = 'prev';
 
-    if (total < current_bid[0]) {
-        id_loser = 'prev';
+            tmp = 'bid_bluff';
+            if (total === 0) {
+                tmp += '_none';
+            } else if (total === 1) {
+                total = lang.num_one;
+            }
 
-        tmp = 'bid_bluff';
-        if (total === 0) {
-            tmp += '_none';
-        } else if (total === 1) {
-            total = lang.num_one;
+            announce(
+                lang[tmp].format({ count: total, face: current_bid[1] + (total !== lang.num_one ? lang.face_mult : '') }) + ' ' +
+                lang.bid_bluff2.format({ nick: get_nick.prev() })
+            );
+        } else {
+            id_loser = 'current';
+            tmp = current_bid[0];
+
+            if (tmp === 1) {
+                tmp = lang.num_one;
+            }
+
+            announce(
+                lang.bid_valid.format({ count: tmp, face: current_bid[1] + (tmp !== lang.num_one ? lang.face_mult : '') }) + ' ' +
+                lang.bid_valid2.format({ nick: get_nick.current() })
+            );
         }
 
-        announce(
-            lang[tmp].format({ count: total, face: current_bid[1] + (total !== lang.num_one ? lang.face_mult : '') }) + ' ' +
-            lang.bid_bluff2.format({ nick: get_nick.prev() })
-        );
-    } else {
-        id_loser = 'current';
-        tmp = current_bid[0];
-
-        if (tmp === 1) {
-            tmp = lang.num_one;
+        dice_left = --players_dice[get_nick[id_loser]()].count;
+        if (dice_left === 0) {
+            finish = player.lost(get_nick[id_loser]());
         }
 
-        announce(
-            lang.bid_valid.format({ count: tmp, face: current_bid[1] + (tmp !== lang.num_one ? lang.face_mult : '') }) + ' ' +
-            lang.bid_valid2.format({ nick: get_nick.current() })
-        );
-    }
+        total_dice -= 1;
 
-    dice_left = --players_dice[get_nick[id_loser]()].count;
-    if (dice_left === 0) {
-        finish = player.lost(get_nick[id_loser]());
-    }
-
-    total_dice -= 1;
-
-    if (!finish) {
-        setTimeout(function() {
-            round_start(get_id[id_loser]());
-        }, TIMEOUT_ROUND * 1000);
-    }
+        if (!finish) {
+            setTimeout(function() {
+                round_start(get_id[id_loser]());
+            }, TIMEOUT_ROUND * 1000);
+        }
+    });
 };
 
 /**
@@ -470,54 +473,53 @@ player.spoton = function(nick) {
     }
 
     announce(lang.spoton.format({ nick: nick }));
-    total = reveal_dice(current_bid[1]);
+    total = reveal_dice(current_bid[1], function(total) {
+        if (total === current_bid[0]) {
+            if (total === 1) {
+                total = lang.num_one;
+            }
 
-    if (total === current_bid[0]) {
-        if (total === 1) {
-            total = lang.num_one;
-        }
+            announce(
+                lang.spoton_true.format({ count: total, face: current_bid[1] + (total !== lang.num_one ? lang.face_mult : '') }) + ' ' +
+                (players.length === 2 ? lang.spoton_true2_single.format({ nick: get_nick.next() }) : lang.spoton_true2.format())
+            );
 
-        announce(
-            lang.spoton_true.format({ count: total, face: current_bid[1] + (total !== lang.num_one ? lang.face_mult : '') }) + ' ' +
-            (players.length === 2 ? lang.spoton_true2_single.format({ nick: get_nick.next() }) : lang.spoton_true2.format())
-        );
-
-        for (player_nick in players_dice) {
-            if (player_nick !== nick && players_dice.hasOwnProperty(player_nick)) {
-                dice_left = --players_dice[player_nick].count;
-                if (dice_left === 0) {
-                    finish = player.lost(player_nick);
-                    sleep(1);
+            for (player_nick in players_dice) {
+                if (player_nick !== nick && players_dice.hasOwnProperty(player_nick)) {
+                    dice_left = --players_dice[player_nick].count;
+                    if (dice_left === 0) {
+                        finish = player.lost(player_nick);
+                    }
                 }
             }
+
+            id_loser = 'next';
+        } else {
+            if (total === 0) {
+                total = lang.num_none;
+            } else if (total === 1) {
+                total = lang.num_one;
+            }
+
+            announce(
+                lang.spoton_wrong.format({ count: total, face: current_bid[1] + (total !== lang.num_one ? lang.face_mult : '') }) + ' ' +
+                lang.spoton_wrong2.format({ nick: nick })
+            );
+
+            dice_left = --players_dice[nick].count;
+            if (dice_left === 0) {
+                finish = player.lost(nick);
+            }
+
+            id_loser = 'current';
         }
 
-        id_loser = 'next';
-    } else {
-        if (total === 0) {
-            total = lang.num_none;
-        } else if (total === 1) {
-            total = lang.num_one;
+        if (!finish) {
+            setTimeout(function() {
+                round_start(get_id[id_loser]());
+            }, TIMEOUT_ROUND * 1000);
         }
-
-        announce(
-            lang.spoton_wrong.format({ count: total, face: current_bid[1] + (total !== lang.num_one ? lang.face_mult : '') }) + ' ' +
-            lang.spoton_wrong2.format({ nick: nick })
-        );
-
-        dice_left = --players_dice[nick].count;
-        if (dice_left === 0) {
-            finish = player.lost(nick);
-        }
-
-        id_loser = 'current';
-    }
-
-    if (!finish) {
-        setTimeout(function() {
-            round_start(get_id[id_loser]());
-        }, TIMEOUT_ROUND * 1000);
-    }
+    });
 };
 
 /**
