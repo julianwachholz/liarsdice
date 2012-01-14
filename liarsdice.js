@@ -166,7 +166,7 @@ reveal_dice = function(face, fn) {
     var total = 0, subtotal, i, player, iteration = 1;
 
     for (player in players_dice) {
-        if (players_dice.hasOwnProperty(player)) {
+        if (players_dice.hasOwnProperty(player) && !!players_dice[player].count) {
             subtotal = 0;
             for (i = 0; i < players_dice[player].count; i++) {
                 if (players_dice[player].faces[i] === face) {
