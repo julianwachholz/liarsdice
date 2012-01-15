@@ -739,7 +739,7 @@ player.stats = function(reply_fn, stats_for) {
                                         highscore['wins'+j] = doc.wins;
 
                                         if (j === 3) {
-                                            reply_fn(lang.stats_global.format(stats_highscore));
+                                            reply_fn(lang.stats_global.format(highscore));
                                         }
                                     }
                                 };
@@ -822,7 +822,10 @@ exports.set_stats_collection = function(collection, callback) {
             callback();
         } else {
             stats.insert({
-                nick: config.mongodb.global_nick
+                nick: config.mongodb.global_nick,
+                total: 0,
+                nowinner: 0,
+                notstarted: 0
             }, function(err, docs) {
                 stats_global_objectid = docs[0]._id;
                 callback();
