@@ -96,7 +96,7 @@ get_nick = {
     next: function() {
         return players[get_id.next()];
     }
-}
+};
 
 
 /**
@@ -210,7 +210,7 @@ reveal_dice = function(face, fn) {
                         face: face + (subtotal !== lang.num_one ? lang.face_mult : ''),
                         total: total
                     }));
-                }
+                };
             }(player, subtotal, face, total), 1000 * iteration++);
         }
     }
@@ -229,11 +229,11 @@ game_ended = function() {
     if (players.length === 1) {
         announce(lang.game_finish.format({ nick: players[0] }));
         if (stats_enabled) {
-            stats.update({ _id: players_info[nick].objectId }, {
+            stats.update({ _id: players_info[players[0]].objectId }, {
                 $inc: {
                     wins: 1,
-                    perfectwins: players_info[nick].count === INITIAL_DICE ? 1 : 0,
-                    singlewins: players_info[nick].count === 1 ? 1 : 0
+                    perfectwins: players_info[players[0]].count === INITIAL_DICE ? 1 : 0,
+                    singlewins: players_info[players[0]].count === 1 ? 1 : 0
                 }
             });
         }
@@ -407,7 +407,7 @@ player.bid = function(nick, count, face) {
         return;
     }
 
-    if (count > current_bid[0] || count == current_bid[0] && face > current_bid[1]) {
+    if (count > current_bid[0] || count === current_bid[0] && face > current_bid[1]) {
         current_bid = [count, face];
         current_player = get_id.next();
 
@@ -578,8 +578,6 @@ player.spoton = function(nick) {
  * @returns {Boolean} true if game is over
  */
 player.lost = function(nick) {
-    var i;
-
     if (status === STATUS_IDLE || !players_info[nick]) {
         return;
     }
@@ -610,7 +608,7 @@ player.quit = function(nick, silent) {
     }
     player.remove(nick);
 
-    if (status !== STATUS_JOINING && nick == current_nick) {
+    if (status !== STATUS_JOINING && nick === current_nick) {
         if (!game_ended()) {
             current_player = get_id.next();
             if (current_bid[0] === 0) {
@@ -628,7 +626,7 @@ player.quit = function(nick, silent) {
  * @param {String} nick
  */
 player.remove = function(nick) {
-    for (i = 0; i < players.length; i++) {
+    for (var i = 0; i < players.length; i++) {
         if (players[i] === nick) {
             players.splice(i,1);
             break;
@@ -717,7 +715,7 @@ player.stats = function(reply_fn, stats_for) {
     } else {
         stats.findOne({ _id: stats_global_objectid }, function(err, global_stats) {
             if (err) {
-                reply_fn(lang.e_db.format({error: err.message }))
+                reply_fn(lang.e_db.format({error: err.message }));
             } else {
                 reply_fn(lang.stats_global.format({
                     total: global_stats.total,
