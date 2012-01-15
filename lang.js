@@ -41,11 +41,11 @@ exports.en = {
     face_mult: 's',
 
     command: {
-        init:      /^\!(start|join)/i,
+        init:      /^\!(start|j(oin)?)/i,
         ping:      /^\!ping/i, // @TODO ping command
         quit:      /^\!(quit|forfeit|giveup)/i,
 
-        bid:       /^\!bid (\d+) (\d+)s?/i,
+        bid:       /^\!b(id)? (\d+) (\d+)s?/i,
         challenge: /^\!(liar|call|bluff)\b/i,
         spoton:    /^\!spot( |-)?on/i,
 
