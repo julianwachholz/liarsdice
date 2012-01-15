@@ -5,7 +5,7 @@ Setup
 -----
 
 1. clone this repository
-2. `npm install irc`
+2. `npm install irc mongodb`
 3. modify config.js to your liking
    - for NickServ authentication, rename `password.json.example` to `password.json` and add your password.
 4. `node bot.js`
