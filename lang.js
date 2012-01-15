@@ -51,6 +51,8 @@ exports.en = {
 
         kick:      /^\!kick (\S+)/i, // @TODO kick command
         dice_left: /(^\!dice(left)?|dice (are )?left\??)/i,
+
+        stats:     /^\!stats( \S+)?/i,
     },
 
     e_cannot_join:       '{nick}: Sorry, you can\'t join the game right now',
@@ -116,5 +118,14 @@ exports.en = {
 
     dice_left:           ['Dice left in this round: ',
                           'These have a few dice left: '],
-    dice_reveal:         '{nick} shows {count} {face}, totalling {total}'
+    dice_reveal:         '{nick} shows {count} {face}, totalling {total}',
+
+    stats_global:        'Games played: {total} (without a winner: {nowinner}, failed to start: {notstarted})',
+    stats_highscore:     'Most wins:\n1. {nick1} ({wins1})\n2. {nick2} ({wins2})\n3. {nick3} ({wins3})',
+    e_stats_unknown:     'I don\'t know this nick.',
+    stats_player:        'Statistics for player {nick}:\nGames played: {total} - Games won: {wins} ({winpercent}%)',
+    stats_player_perfect:   'Times won without losing a die: {perfectins}',
+    stats_player_single:    'Times won with a single die left: {singlewins}',
+
+    e_db:                'Whoops, this shouldn\'t happen: {error}'
 };

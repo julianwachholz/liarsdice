@@ -2,7 +2,11 @@
  * The main game
  */
 
-var lang = require('./lang')[require('./config').lang],
+var mongodb = require('mongodb'),
+    ObjectId = mongodb.ObjectId,
+
+    config = require('./config'),
+    lang = require('./lang')[config.lang],
 
 // Constants
     STATUS_IDLE    = 0,
@@ -22,6 +26,11 @@ var lang = require('./lang')[require('./config').lang],
     FACE_MIN = 1,
     FACE_MAX = 6,
 
+// MongoDB collection reference for player statistics
+    stats_enabled = false,
+    stats,
+    stats_global_objectid = null,
+
 // Runtime settings
     status = STATUS_IDLE,
 
@@ -32,7 +41,7 @@ var lang = require('./lang')[require('./config').lang],
     },
 
     players        = [],
-    players_dice   = {},
+    players_info   = {},
     current_player = -1,
     initial_bidder = -1,
     total_dice     = 0,
@@ -57,10 +66,7 @@ var lang = require('./lang')[require('./config').lang],
     player;   // player functions
 
 announce = function(str) {};
-exports.set_announce = function(fn) { announce = fn; };
-
 tell = function(nick, str) {};
-exports.set_tell = function(fn) { tell = fn; };
 
 /**
  * Get player IDs
@@ -97,11 +103,13 @@ get_nick = {
  * Starts or initializes a new game
  */
 game_start = function(nick) {
+    var stat_update;
+
     if (status !== STATUS_JOINING) {
         status = STATUS_JOINING;
 
         players        = [];
-        players_dice   = {};
+        players_info   = {};
         current_player = -1;
         initial_bidder = -1;
 
@@ -110,10 +118,21 @@ game_start = function(nick) {
     } else {
         if (players.length < MIN_PLAYERS) {
             announce(lang.e_too_few_players.format());
+            stat_update = { $inc: { notstarted: 1 } };
             status = STATUS_IDLE;
         } else {
+            stat_update = { $inc: { total: 1 } };
             status = STATUS_PLAYING;
             round_start(0); // first one to join - first one to bid
+        }
+
+        if (stats_enabled) {
+            stats.update({ _id: stats_global_objectid }, stat_update);
+            if (status === STATUS_PLAYING) {
+                players_info.forEach(function(player) {
+                    stats.update({ _id: player.objectI }, { $inc: { total: 1 } });
+                });
+            }
         }
     }
 };
@@ -132,17 +151,17 @@ round_start = function(player_id) {
         return;
     }
 
-    for (nick in players_dice) {
-        if (players_dice.hasOwnProperty(nick)) {
+    for (nick in players_info) {
+        if (players_info.hasOwnProperty(nick)) {
             faces = [];
-            dice_count = players_dice[nick].count;
+            dice_count = players_info[nick].count;
             total_dice += dice_count;
 
             for (i = 0; i < dice_count; i++) {
                 faces.push(Math.floor(Math.random() * (FACE_MAX - FACE_MIN + 1)) + FACE_MIN);
             }
 
-            players_dice[nick].faces = faces;
+            players_info[nick].faces = faces;
             tell(nick, lang.player_rolled.format({ dice: faces.join(' ') }));
         }
     }
@@ -165,11 +184,11 @@ round_start = function(player_id) {
 reveal_dice = function(face, fn) {
     var total = 0, subtotal, i, player, iteration = 1;
 
-    for (player in players_dice) {
-        if (players_dice.hasOwnProperty(player) && !!players_dice[player].count) {
+    for (player in players_info) {
+        if (players_info.hasOwnProperty(player) && !!players_info[player].count) {
             subtotal = 0;
-            for (i = 0; i < players_dice[player].count; i++) {
-                if (players_dice[player].faces[i] === face) {
+            for (i = 0; i < players_info[player].count; i++) {
+                if (players_info[player].faces[i] === face) {
                     subtotal += 1;
                     total += 1;
                 }
@@ -207,6 +226,15 @@ reveal_dice = function(face, fn) {
 game_ended = function() {
     if (players.length === 1) {
         announce(lang.game_finish.format({ nick: players[0] }));
+        if (stats_enabled) {
+            stats.update({ _id: players_info[nick].objectId }, {
+                $inc: {
+                    wins: 1,
+                    perfectwins: players_info[nick].count === INITIAL_DICE ? 1 : 0,
+                    singlewins: players_info[nick].count === 1 ? 1 : 0
+                }
+            });
+        }
         status = STATUS_IDLE;
         return true;
     }
@@ -273,6 +301,11 @@ timer = {
         this.timer_game = setTimeout(function() {
             if (status !== STATUS_PLAYING) { return; }
             announce(lang.timeout_game.format({ minutes: TIMEOUT_GAME }));
+            if (stats_enabled) {
+                stats.update({ _id: stats_global_objectid }, {
+                    $inc: { nowinner: 1 }
+                });
+            }
             status = STATUS_IDLE;
         }, TIMEOUT_GAME * 60 * 1000);
     },
@@ -316,7 +349,7 @@ player.join = function(nick, silent) {
         return;
     }
 
-    if (nick in players_dice) {
+    if (nick in players_info) {
         announce(lang.e_already_joined.format({ nick: nick }));
         return;
     }
@@ -327,10 +360,23 @@ player.join = function(nick, silent) {
     }
 
     players.push(nick);
-    players_dice[nick] = {
+    players_info[nick] = {
         count: INITIAL_DICE,
-        faces: []
+        faces: [],
+        objectId: null
     };
+
+    if (stats_enabled) {
+        stats.findOne({ nick: nick }, function(err, doc) {
+            if (!!doc) {
+                players_info[nick].objectId = doc._id;
+            } else {
+                stats.insert({ nick: nick, total: 0, wins: 0 }, function(err, docs) {
+                    players_info[nick].objectId = docs[0]._id;
+                });
+            }
+        });
+    }
 
     if (silent !== true) {
         announce(lang.player_join.format({ nick: nick }));
@@ -441,7 +487,7 @@ player.challenge = function(nick) {
             );
         }
 
-        dice_left = --players_dice[get_nick[id_loser]()].count;
+        dice_left = --players_info[get_nick[id_loser]()].count;
         if (dice_left === 0) {
             finish = player.lost(get_nick[id_loser]());
         }
@@ -484,9 +530,9 @@ player.spoton = function(nick) {
                 (players.length === 2 ? lang.spoton_true2_single.format({ nick: get_nick.next() }) : lang.spoton_true2.format())
             );
 
-            for (player_nick in players_dice) {
-                if (player_nick !== nick && players_dice.hasOwnProperty(player_nick)) {
-                    dice_left = --players_dice[player_nick].count;
+            for (player_nick in players_info) {
+                if (player_nick !== nick && players_info.hasOwnProperty(player_nick)) {
+                    dice_left = --players_info[player_nick].count;
                     if (dice_left === 0) {
                         finish = player.lost(player_nick);
                     }
@@ -506,7 +552,7 @@ player.spoton = function(nick) {
                 lang.spoton_wrong2.format({ nick: nick })
             );
 
-            dice_left = --players_dice[nick].count;
+            dice_left = --players_info[nick].count;
             if (dice_left === 0) {
                 finish = player.lost(nick);
             }
@@ -532,7 +578,7 @@ player.spoton = function(nick) {
 player.lost = function(nick) {
     var i;
 
-    if (status === STATUS_IDLE || !players_dice[nick]) {
+    if (status === STATUS_IDLE || !players_info[nick]) {
         return;
     }
 
@@ -553,7 +599,7 @@ player.lost = function(nick) {
  */
 player.quit = function(nick, silent) {
     var current_nick = get_nick.current();
-    if (status === STATUS_IDLE || !players_dice[nick]) {
+    if (status === STATUS_IDLE || !players_info[nick]) {
         return;
     }
 
@@ -586,7 +632,7 @@ player.remove = function(nick) {
             break;
         }
     }
-    delete(players_dice[nick]);
+    delete(players_info[nick]);
 };
 
 /**
@@ -605,8 +651,8 @@ player.rename = function(oldnick, newnick) {
         }
     }
 
-    players_dice[newnick] = players_dice[oldnick];
-    delete(players_dice[oldnick]);
+    players_info[newnick] = players_info[oldnick];
+    delete(players_info[oldnick]);
 };
 
 /**
@@ -625,9 +671,9 @@ player.dice_left = function() {
 
     str = lang.dice_left.format();
 
-    for (player in players_dice) {
-        if (players_dice.hasOwnProperty(player) && !!players_dice[player].count) {
-            str += player + '(' + players_dice[player].count + ') ';
+    for (player in players_info) {
+        if (players_info.hasOwnProperty(player) && !!players_info[player].count) {
+            str += player + '(' + players_info[player].count + ') ';
         }
     }
 
@@ -635,17 +681,91 @@ player.dice_left = function() {
 };
 
 /**
+ * Shows a player's or global statistics
+ *
+ * @param {Function} reply_fn
+ * @param {String} stats_for
+ */
+player.stats = function(reply_fn, stats_for) {
+    var cursor, highscore, i;
+
+    if (reply_fn === announce && !timer.throttle('stats', 10)) {
+        return;
+    }
+
+    if (!!stats_for && stats_for.trim() !== '') {
+        stats.findOne({ nick: stats_for.trim() }, function(err, doc) {
+            if (!!doc) {
+                reply_fn(lang.stats_player.format({
+                    nick: doc.nick,
+                    total: doc.total,
+                    wins: doc.wins,
+                    winpercent: Math.round(doc.wins * 100 / doc.total)
+                }));
+                if (doc.perfectwins) {
+                    reply_fn(lang.stats_player_perfect.format({ perfectwins: doc.perfectwins }));
+                }
+                if (doc.singlewins) {
+                    reply_fn(lang.stats_player_single.format({ singlewins: doc.singlewins }));
+                }
+            } else {
+                reply_fn(lang.e_stats_unknown.format());
+            }
+        });
+    } else {
+        stats.findOne({ _id: stats_global_objectid }, function(err, global_stats) {
+            if (err) {
+                reply_fn(lang.e_db.format({error: err.message }))
+            } else {
+                reply_fn(lang.stats_global.format({
+                    total: global_stats.total,
+                    nowinner: global_stats.nowinner,
+                    notstarted: global_stats.notstarted
+                }));
+
+                cursor = stats.find({ nick: { $ne: config.mongodb.global_nick } });
+                cursor.sort('wins', -1).limit(3);
+                cursor.count(function(err, num) {
+                    if (!err && num === 3) {
+                        highscore = {};
+                        for (i = 0; i < 3; i++) {
+                            cursor.nextObject(function(i) {
+                                return function(err, doc) {
+                                    if (!!doc) {
+                                        var j = i+1;
+                                        highscore['nick'+j] = doc.nick;
+                                        highscore['wins'+j] = doc.wins;
+
+                                        if (j === 3) {
+                                            reply_fn(lang.stats_global.format(stats_highscore));
+                                        }
+                                    }
+                                };
+                            }(i));
+                        }
+                    }
+                });
+            }
+        });
+    }
+};
+
+/**
  * A player called command
  *
- * @param {String} nick
- * @param {String} command
- * @param {Array}  arguments
+ * @param {String}  nick
+ * @param {String}  command
+ * @param {Array}   arguments
+ * @param {Boolean} is_pm
  */
-player.__command = function(nick, command, arguments) {
+player.__command = function(nick, command, arguments, is_pm) {
+    if (is_pm !== true) {
+        is_pm = false;
+    }
+
     switch (command) {
 
     case 'init':
-    case 'join':
         if (status !== STATUS_PLAYING) {
             if (status === STATUS_IDLE) {
                 game_start(nick);
@@ -678,11 +798,37 @@ player.__command = function(nick, command, arguments) {
         player.quit(nick);
         break;
 
+    case 'stats':
+        player.stats(is_pm ? function (str) {
+            tell(nick, str);
+        } : announce, arguments[0]);
+        break;
+
     }
 };
 
 
 // exports
+exports.set_announce = function(fn) { announce = fn; };
+exports.set_tell = function(fn) { tell = fn; };
+exports.set_stats_collection = function(collection, callback) {
+    stats_enabled = true;
+    stats = collection;
+    stats.findOne({ nick: config.mongodb.global_nick }, function(err, doc) {
+        if (!!doc) {
+            stats_global_objectid = doc._id;
+            callback();
+        } else {
+            stats.insert({
+                nick: config.mongodb.global_nick
+            }, function(err, docs) {
+                stats_global_objectid = docs[0]._id;
+                callback();
+            });
+        }
+    });
+};
+
 exports.player_command = player.__command;
 exports.player_rename = player.rename;
 exports.player_quit = player.quit;

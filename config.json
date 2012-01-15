@@ -7,5 +7,14 @@
     "nick":    "liarsdice",
     "user":    "liarsdice",
     "real":    "Liar's Dice Bot",
-    "channel": "##liarsdice"
+    "channel": "##liarsdice",
+
+    "mongodb": {
+        "dbname":  "liarsdice",
+        "server":  "localhost",
+        "port":    null,
+        "options": {},
+        "global_nick": "!GLOBAL!"
+    }
+
 }

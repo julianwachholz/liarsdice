@@ -8,6 +8,7 @@ var irc    = require('irc'),
     config = require('./config'),
     lang   = require('./lang')[config.lang],
     game   = require('./liarsdice'),
+    mongo  = require('mongodb'),
     bot;
 
 // Initializes the bot
@@ -52,6 +53,7 @@ bot.addListener('kick', function(chan, nick) {
 // Identify with NickServ
 bot.addListener('notice', function(nick, to, text) {
     if (nick === 'NickServ' && text.match(/^This nickname is registered\./)) {
+        console.info('Authenticating with NickServ');
         bot.say('NickServ', 'IDENTIFY ' + require('./password').password);
     }
 });
@@ -73,5 +75,25 @@ bot.addListener('message' + config.channel, function(nick, message) {
     }
 });
 
-// Connect the bot!
-bot.connect();
+// Connect to MongoDB
+if (!!config.mongodb) {
+    new mongo.Db(
+        config.mongodb.dbname,
+        new mongo.Server(config.mongodb.server, config.mongodb.port || mongo.Connection.DEFAULT_PORT),
+        config.mongodb.options)
+    .open(function(err, db) {
+        if (!err) {
+            db.collection('players', function(err, collection) {
+                console.info('Connected to MongoDB, starting IRC bot');
+                game.set_stats_collection(collection, function() {
+                    bot.connect();
+                });
+            });
+        } else {
+            throw err;
+        }
+    });
+} else {
+    console.info('Starting IRC bot without statistics');
+    bot.connect();
+}
