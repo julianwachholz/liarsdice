@@ -103,7 +103,7 @@ get_nick = {
  * Starts or initializes a new game
  */
 game_start = function(nick) {
-    var stat_update;
+    var stat_update, player;
 
     if (status !== STATUS_JOINING) {
         status = STATUS_JOINING;
@@ -129,9 +129,11 @@ game_start = function(nick) {
         if (stats_enabled) {
             stats.update({ _id: stats_global_objectid }, stat_update);
             if (status === STATUS_PLAYING) {
-                players_info.forEach(function(player) {
-                    stats.update({ _id: player.objectI }, { $inc: { total: 1 } });
-                });
+                for (player in players_info) {
+                    if (players_info.hasOwnProperty(player)) {
+                        stats.update({ _id: player.objectId }, { $inc: { total: 1 } });
+                    }
+                }
             }
         }
     }
