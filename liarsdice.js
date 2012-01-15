@@ -131,7 +131,7 @@ game_start = function(nick) {
             if (status === STATUS_PLAYING) {
                 for (player in players_info) {
                     if (players_info.hasOwnProperty(player)) {
-                        stats.update({ _id: player.objectId }, { $inc: { total: 1 } });
+                        stats.update({ _id: players_info[player].objectId }, { $inc: { total: 1 } });
                     }
                 }
             }
@@ -737,7 +737,7 @@ player.stats = function(reply_fn, stats_for) {
                                         highscore['wins'+j] = doc.wins;
 
                                         if (j === 3) {
-                                            reply_fn(lang.stats_global.format(highscore));
+                                            reply_fn(lang.stats_highscore.format(highscore));
                                         }
                                     }
                                 };
