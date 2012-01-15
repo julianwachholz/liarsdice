@@ -45,7 +45,7 @@ exports.en = {
         ping:      /^\!ping/i, // @TODO ping command
         quit:      /^\!(quit|forfeit|giveup)/i,
 
-        bid:       /^\!b(id)? (\d+) (\d+)s?/i,
+        bid:       /^\!b(?:id)? (\d+) (\d+)s?/i,
         challenge: /^\!(liar|call|bluff)\b/i,
         spoton:    /^\!spot( |-)?on/i,
 
