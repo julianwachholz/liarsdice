@@ -407,7 +407,7 @@ player.bid = function(nick, count, face) {
         return;
     }
 
-    if (count > current_bid[0] || count === current_bid[0] && face > current_bid[1]) {
+    if (count > current_bid[0] || (count === current_bid[0] && count !== 0 && face > current_bid[1])) {
         current_bid = [count, face];
         current_player = get_id.next();
 
