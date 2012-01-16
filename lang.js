@@ -124,7 +124,7 @@ exports.en = {
     stats_highscore:     'Most wins:\n1. {nick1} ({wins1})\n2. {nick2} ({wins2})\n3. {nick3} ({wins3})',
     e_stats_unknown:     'I don\'t know this nick.',
     stats_player:        'Statistics for player {nick}:\nGames played: {total} - Games won: {wins} ({winpercent}%)',
-    stats_player_perfect:   'Times won without losing a die: {perfectins}',
+    stats_player_perfect:   'Times won without losing a die: {perfectwins}',
     stats_player_single:    'Times won with a single die left: {singlewins}',
 
     e_db:                'Whoops, this shouldn\'t happen: {error}'
